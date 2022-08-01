@@ -114,6 +114,27 @@ module cone(d1, d2, h, angle=360) {
     ]);
 }
 
+module rcube(size, e=-Edge_Height, r=Edge_Radius) {
+    d = 2*r;
+    s = [size[0]-d, size[1]-d, size[2]];
+
+    translate([r,r])
+    union(){
+        long_pillar(d, d+2*e, s[2], abs(e), s[0]);
+    
+        translate([0, s[1]])
+        long_pillar(d, d+2*e, s[2], abs(e), s[0]);
+        
+        rotate([-90,0,0])
+        linear_extrude(s[1])
+        projection()
+        rotate([90,0,0])
+        long_pillar(d, d+2*e, s[2], abs(e), s[0]);
+    }
+    
+    
+}
+
 module pillar(d, base_d, h, base_h, angle=360) {
     cone(base_d, d, base_h, angle);
     translate([0, 0, base_h])
@@ -205,6 +226,10 @@ module top() {
         cut();
 
         cut2();
+
+        rotate(beta)
+        translate([id/2+Joint_Diameter/2, 0, sub_h])
+        cylinder(d=jd, h=sub_h);
     }
 
     difference(){
@@ -336,21 +361,36 @@ module latch_part1() {
     }
 }
 
-module latch_base(h, width, l=od/2-1, e=Edge_Height) {
+module lever_base(h, width, l=od/2-1, e=Edge_Height, cut=3) {
     
     difference() {
-        translate([od/2-(w-id)/4, 0])
-        rotate(-120)
-        translate([0, (w-id)/4-width/2])
         long_pillar(width, width-2*e, h, e, l-width);
 
-        translate([od/2-5, -width, 0])
-        cube([width*2, width*2, h]);
+        translate([-width/2, -width/2, 0])
+        cube([width, width, h]);
     }
 
 }
 
-//latch_base(10, 5);
+module lever(h){
+    lever_w = (w-id)/2;
+    lever_l1 = od/2-1;
+    lever_l2 = od/2+Latch_Overhang;
+
+    difference() {
+        union() {
+            lever_base(h, lever_w, lever_l1);
+            translate([0,lever_w/4])
+            lever_base(h, lever_w/2, lever_l2);
+        }
+        
+        translate([0,lever_w/2, (h-sub_h)/2])
+        rotate([90,0,0])
+        rcube([lever_l1-lever_w, sub_h, lever_w], e=Edge_Height, r=2);
+    }
+}
+
+//lever(20);
 
 module _latch_part2(h) {
 
@@ -371,9 +411,9 @@ module _latch_part2(h) {
     bean(Joint_Diameter);
 
     difference(){
-        union(){
-            latch_base(h,(w-id)/2);
-            latch_base(h,(w-id)/4, od/2+Latch_Overhang);
+        translate([od/2-(w-id)/4, 0])
+        rotate(-120) {
+            lever(h);
         }
 
         translate([0, 0, (h-sub_h)/2])
