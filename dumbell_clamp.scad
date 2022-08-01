@@ -190,6 +190,11 @@ module top() {
         cone(od+10, od+10, Height, 90);
     }
 
+    module cut2() {
+        rotate(120)
+        cone(od+10, od+10, Height, 180);
+    }
+
     difference(){
         part_base(Height);
     
@@ -198,6 +203,8 @@ module top() {
 
         rotate(-30)
         cut();
+
+        cut2();
     }
 
     difference(){
@@ -220,7 +227,16 @@ module top() {
         cylinder(d=jd, h=sub_h);
     }
 
-    
+    intersection(){
+        union(){
+            part_base(sub_h-t);
+
+            translate([0,0,Height-sub_h+t])
+            part_base(sub_h-t);
+        }
+        
+        cut2();
+    }
 
 }
 
@@ -233,6 +249,7 @@ module top_part() {
 
         rotate(beta)
         translate([+jr, 0])
+        rotate(-beta)
         hinge_cut();
     }
 }
@@ -389,7 +406,7 @@ module latch_part2() {
 
         rotate(beta-Latch_Angle)
         translate([jr,0,0])
-        //rotate(-beta+Latch_Angle)
+        rotate(-beta+Latch_Angle+30)
         hinge_cut(h);
     }
 }
@@ -427,3 +444,5 @@ module part(rotate=false) {
 }
 
 part();
+
+//cylinder(d=24, h=Height);
