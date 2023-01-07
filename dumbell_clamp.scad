@@ -58,7 +58,7 @@ bolt_specs = [
     [4, 7, 4],
     [5, 8.5, 5]
 ];
-bolt_spec_t = [0.4, 0.6, 0.2];
+bolt_spec_t = [0.4, 0.7, 0.2];
 
 // width across flats, thickness
 nut_specs = [
@@ -66,7 +66,7 @@ nut_specs = [
     [7, 3.2],
     [8, 4.7]
 ];
-nut_spec_t = [0.3, 0.3];
+nut_spec_t = [0.4, 0.3];
 
 bolt_spec = bolt_specs[Bolt_Size];
 nut_spec = nut_specs[Bolt_Size];
