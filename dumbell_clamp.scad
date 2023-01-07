@@ -1,12 +1,12 @@
 
-Part_Selection = 0; // [0:Clamp, 1:Top, 2:Bottom, 3:Latch_Part1, 4:Latch_Part2]
+Part_Selection = 0; // [0:Clamp, 1:Top, 2:Bottom, 3:Latch_Part1, 4:Latch_Part2, 5:None]
 Bar_Diameter = 25;
-Compression = 1;
-Joint_Diameter = 16;
+Compression = 0.7;
+Joint_Diameter = 15;
 Bumper_Height = 1.5;
 Bumper_Angle = 80;
-Latch_Angle = 60;
-Latch_Overhang = 7;
+Lever_Hole_Dist = 7.5;
+Lever_Overhang = 9;
 
 Height = 33;
 
@@ -14,13 +14,24 @@ Edge_Height = 1;
 Edge_Radius = 7;
 
 Bolt_Size = 0; // [0:M3, 1:M4, 2:M5]
-Hinge_Type = 0; // [0:Bolt, 1:Peg]
+Hinge_Type = 0; // [0:Bolt, 1:Pin]
+
+Groove_Width = 5;
+Groove_Height = 5;
+Groove_Offset = -2;
+Groove_Count = 1;
+
+Grooves = true;
+Bridges = true;
+Cut_in_Half = false;
+Second_Half = false;
 
 /* [Hidden] */
 
 od = Bar_Diameter+2*Joint_Diameter+2*Bumper_Height;
 id = Bar_Diameter+2*Bumper_Height;
 bar_d = Bar_Diameter - Compression;
+bar_r = bar_d/2;
 sub_h = Height/3;
 alpha = (180-Bumper_Angle)/2;
 joint_t = 0.8;
@@ -36,6 +47,8 @@ function law_of_cos(a, b, gamma) = sqrt(a*a+b*b-2*a*b*cos(gamma));
 function law_of_acos(a, b, c) = acos((a*a+b*b-c*c)/(2*a*b));
 beta = law_of_acos(id/2+Joint_Radius, id/2+Joint_Radius, Joint_Diameter);
 echo("beta", beta);
+
+groove_dist = law_of_cos(bar_r, bar_r, Bumper_Angle);
 
 $fn=30;
 
@@ -64,6 +77,9 @@ bolt_head_h = bolt_spec[2] + bolt_spec_t[2];
 nut_w = nut_spec[0] + nut_spec_t[0];
 nut_h = nut_spec[1] + nut_spec_t[1];
 
+gamma = law_of_acos(id/2+Joint_Radius, id/2+Joint_Radius, Lever_Hole_Dist);
+Latch_Angle = beta+gamma;
+
 module hinge_base(Height=Height) {
     cylinder(d=hinge_d, h=Height);
 }
@@ -71,13 +87,28 @@ module hinge_base(Height=Height) {
 //hinge_cut();
 
 module hinge_cut(Height=Height) {
-    hinge_base();
+
+    layer_h = 0.2;
+
     if(Hinge_Type == 0) { //Bolt
+        rotate(30)
+        nut(nut_w, nut_h);
+
+        if (Bridges) {
+            hinge_h = Height-bolt_head_h-nut_h-2*layer_h;
+            translate([0,0,nut_h+layer_h])
+            hinge_base(hinge_h);
+        }
+        else {
+            hinge_base();
+        }
+
         translate([0,0,Height-bolt_head_h])
         cylinder(d=bolt_head_d, h=bolt_head_h);
 
-        rotate(30)
-        nut(nut_w, nut_h);
+        
+    } else {
+        hinge_base();
     }
 }
 
@@ -276,10 +307,22 @@ module top_part() {
         translate([+jr, 0])
         rotate(-beta)
         hinge_cut();
+
+        if (Grooves) {
+            translate([0, w/2+0.5, 0])
+            groove_cuts();
+        }
+
+        if (Cut_in_Half) {
+            translate([0,0, Second_Half ? 0 : Height/2])
+            cylinder(d=od+10,h=Height/2);
+        }
     }
 }
 
 module bottom() {
+
+    lever_w = (w-id)/2;
 
     module cut() {
         rotate(120)
@@ -295,9 +338,9 @@ module bottom() {
         translate([jr, 0, Height-sub_h])
         pillar2([jd, jd, jd+2*Edge_Height], [sub_h-Edge_Height, Edge_Height]);
 
-        rotate(180)
-        translate([0,0,sub_h/2])
-        latch_base(Height-sub_h,(w-id)/4, od/2+Latch_Overhang, e=0);
+        rotate(60)
+        translate([-od/4,w/2-lever_w/2+Edge_Height,sub_h/2])
+        lever(Height-sub_h, e=0);
 
         cut();
     }
@@ -323,6 +366,16 @@ module bottom_part() {
 
         translate([+jr, 0])
         hinge_cut();
+
+        if (Grooves) {
+            translate([0, w/2+0.5, 0])
+            groove_cuts();
+        }
+
+        if (Cut_in_Half) {
+            translate([0,0, Second_Half ? 0 : Height/2])
+            cylinder(d=od+10,h=Height/2);
+        }
     }
 }
 
@@ -372,16 +425,16 @@ module lever_base(h, width, l=od/2-1, e=Edge_Height, cut=3) {
 
 }
 
-module lever(h){
+module lever(h, e=Edge_Height){
     lever_w = (w-id)/2;
     lever_l1 = od/2-1;
-    lever_l2 = od/2+Latch_Overhang;
+    lever_l2 = od/2+Lever_Overhang;
 
     difference() {
         union() {
-            lever_base(h, lever_w, lever_l1);
+            lever_base(h, lever_w, lever_l1, e=e);
             translate([0,lever_w/4])
-            lever_base(h, lever_w/2, lever_l2);
+            lever_base(h, lever_w/2, lever_l2, e=e);
         }
         
         translate([0,lever_w/2, (h-sub_h)/2])
@@ -451,6 +504,45 @@ module latch_part2() {
     }
 }
 
+module groove(w, h, l, p=0.8) {
+    w2 = w*p;
+    e = (w-w2)/2;
+
+    translate([-w/2,-2*e,0])
+    rotate([90,0,0])
+    rcube([w, l, h-2*e], r=1, e=-e);
+
+    translate([e-w/2,0,0])
+    rotate([90,0,0])
+    rcube([w-2*e, l, 3*e], r=1, e=e);
+}
+
+module groove_cuts() {
+    dist = groove_dist + 2*Groove_Offset;
+    dist2 = Height/(Groove_Count+1);
+
+    translate([-dist/2, 0, -5])
+    groove(Groove_Width, Groove_Height, Height+10);
+
+    translate([dist/2, 0, -5])
+    groove(Groove_Width, Groove_Height, Height+10);
+
+    translate([dist/2, 0, dist2])
+    rotate([0,-90,0]) {
+        for(i = [0:Groove_Count-1]) {
+            translate([dist2*i, 0, 0])
+            groove(Groove_Width, Groove_Height, dist);
+        }
+
+        groove(Groove_Width, Groove_Height, dist);
+
+        
+    }
+    
+}
+
+//groove_cuts();
+
 module clamp() {
     top_part();
     rotate(180)
@@ -463,17 +555,27 @@ module clamp() {
     latch_part2();
 }
 
-module part(rotate=false) {
+module part() {
     if (Part_Selection == 0) {
         clamp();
     } 
     if (Part_Selection == 1) {
-        rotate([rotate ? -90 : 0,0,0])
-        top_part();
+        if (Cut_in_Half && Second_Half) {
+            rotate([0,180,0])
+            translate([0,0,-Height])
+            top_part();
+        } else {
+            top_part();
+        }
     }
     if (Part_Selection == 2) {
-        rotate([rotate ? -90 : 0,0,0])
-        bottom_part();
+        if (Cut_in_Half && Second_Half) {
+            rotate([0,180,0])
+            translate([0,0,-Height])
+            bottom_part();
+        } else {
+            bottom_part();
+        }
     }
     if (Part_Selection == 3) {
         latch_part1();
