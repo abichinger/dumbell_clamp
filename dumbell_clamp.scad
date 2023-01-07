@@ -361,11 +361,18 @@ module bottom_part() {
     difference() {
         bottom();
 
-        translate([-jr, 0])
-        hinge_cut();
-
         translate([+jr, 0])
         hinge_cut();
+
+        translate([-jr, 0])
+        union() {
+            cylinder(d=bolt_head_d, h=bolt_head_h);
+
+            hinge_base();
+
+            translate([0,0,Height-bolt_head_h])
+            cylinder(d=bolt_head_d, h=bolt_head_h);
+        }
 
         if (Grooves) {
             translate([0, w/2+0.5, 0])
