@@ -230,11 +230,13 @@ module part_base(h) {
             rotate([0,0,180-alpha])
             pillar(id, id+2*Edge_Height, h, Edge_Height, angle=alpha+0.01);
 
-            rotate([0,0,alpha])
-            pillar(bar_d, id+2*Edge_Height, h, 2*Edge_Height, angle=Bumper_Angle);
+            rotate([0,0,alpha-1])
+            pillar(bar_d, id+2*Edge_Height, h, 2*Edge_Height, angle=Bumper_Angle+2);
         }
     }
 }
+
+// part_base(Height);
 
 module top() {
 
