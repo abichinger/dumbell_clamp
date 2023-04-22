@@ -22,7 +22,7 @@ Groove_Offset = -2;
 Groove_Count = 1;
 
 Grooves = true;
-Bridges = true;
+Bridges = false;
 Cut_in_Half = false;
 Second_Half = false;
 
